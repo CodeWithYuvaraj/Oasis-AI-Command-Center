@@ -222,7 +222,185 @@ Morning and evening commuter zones drive heavy quick-commerce orders (Zepto, Bli
 }
 
 
-def get_demo(zone: str, section: str) -> str:
+CITY_CONTEXT = {
+    "Hyderabad": "HITEC City, Madhapur IT corridor, Cyber Towers, Gachibowli, Kondapur, Banjara Hills restaurants, Jubilee Hills",
+    "Bengaluru": "Koramangala 5th-6th Block, Indiranagar 100 Feet Road, Whitefield ITPL, MG Road, HSR Layout, Electronic City Phase 1",
+    "Mumbai":    "Andheri West malls, Bandra Linking Road, Powai IT campus, BKC corporate towers, Dadar market, Juhu beach area",
+    "Delhi":     "Connaught Place restaurants, Lajpat Nagar market, Dwarka residential clusters, Cyber City Gurugram, Saket Select Citywalk",
+    "Chennai":   "T. Nagar shopping district, Anna Nagar residential, Velachery IT park, Adyar beachside, OMR tech corridor, Sholinganallur",
+}
+
+CITY_TRAFFIC_NOTES = {
+    "Hyderabad": "Traffic peaks on Outer Ring Road and Mehdipatnam flyover at 8-10 AM and 5-8 PM. HITEC City phase junction is a known 30-min bottleneck. Use Mindspace-Raheja back lane for faster campus access.",
+    "Bengaluru": "Silk Board junction is India's most congested — avoid during 8-10 AM and 5-9 PM. Use Outer Ring Road via Marathahalli as a bypass. Koramangala 5th Block and Indiranagar 12th Main are top demand clusters.",
+    "Mumbai":    "Western Express Highway and Eastern Freeway choke at 8-11 AM and 5-9 PM. Andheri-Kurla Link Road is the fastest cross-zone cut. Monsoon months (Jun-Sep) add 45+ minutes to most routes — plan accordingly.",
+    "Delhi":     "Outer Ring Road and NH-48 are fastest corridors. Connaught Place lanes are one-way — memorise entry points to avoid looping. Metro feeder zones near Rajiv Chowk and Hauz Khas peak at dinner time.",
+    "Chennai":   "OMR corridor is fastest for IT zone deliveries. T. Nagar and Pondy Bazaar are pedestrian-heavy with 10-min parking delays. Anna Salai gridlocks post 6 PM — use Chamiers Road as an alternate.",
+}
+
+CITY_DEMO = {
+    "Bengaluru": {
+        "safety": """
+**Heat & Congestion Risk: HIGH — Plan Your Slots**
+
+Bengaluru's roads are among India's most congested, especially in Koramangala and Indiranagar. While temperatures are milder than other metros, humidity and stop-start traffic increase fatigue significantly.
+
+**Your shift safety protocol:**
+- **Hydration target:** 200 ml every 45 minutes. Refill at any CCD, Starbucks delivery bay, or HPCL bunk on Outer Ring Road.
+- **Silk Board blackout window:** Never enter Silk Board junction between 8-10 AM or 5-9 PM — reroute via Bommanahalli or HSR 27th Main instead.
+- **Shaded wait spots:** Covered parking at Koramangala Forum Mall delivery bay, under the ITPL flyover in Whitefield, or the covered walkway at Indiranagar 100 Feet Road.
+- **Monsoon alert:** June-September roads flood near Bellandur and Marathahalli — keep a 15-minute buffer on all Outer Ring Road estimates.
+        """,
+        "peak": """
+**Demand Forecast — Bengaluru**
+
+| Time Window | Demand Level | Best Platform |
+|---|---|---|
+| 8:00 – 9:30 AM | High | Swiggy (IT park office breakfasts) |
+| 12:30 – 2:00 PM | Very High | Zomato + Swiggy (Koramangala, Indiranagar) |
+| 4:30 – 5:30 PM | Medium | Zepto & Blinkit (evening grocery) |
+| 7:30 – 9:30 PM | Very High | All platforms — HSR, Koramangala surge |
+
+**Strategy:** Position yourself in Koramangala 5th Block by 12:15 PM — the lunch wave dispatches to the nearest available rider. Indiranagar 12th Main is the best evening dinner zone for Rs. 400–600/hour earnings.
+        """,
+        "zones": """
+**Top 3 Hotspots — Bengaluru**
+
+**1. Koramangala 5th & 6th Block**
+Highest restaurant density in South Bengaluru. Average drop radius: 1.5 km inside HSR/BTM layout. Expect 4–6 orders/hour during lunch peak.
+
+**2. Indiranagar 100 Feet Road**
+Strong Blinkit & Zepto demand all day. Evening drops go to HRBR Layout apartments — wide roads, easy navigation, fast turnaround.
+
+**3. Whitefield ITPL Gate**
+Lunch demand concentrates here from 12:15 PM. Short drops (under 2 km) to campus offices. High order frequency, minimal traffic on internal roads.
+
+> **Bengaluru rewards the smart router — avoid Silk Board, own Koramangala, and hit Indiranagar in the evening!**
+        """,
+    },
+    "Mumbai": {
+        "safety": """
+**Heat & Monsoon Risk: VERY HIGH — Critical Precautions Required**
+
+Mumbai's combination of humidity, traffic density, and monsoon flooding makes it the most physically demanding city for two-wheeler delivery. Waterlogging on key arterial roads is a real hazard June through September.
+
+**Your shift safety protocol:**
+- **Hydration target:** 250 ml every 30 minutes in summer. In monsoon, keep dry snacks and a rain poncho accessible at all times.
+- **Flood zones to avoid:** Hindmata (Dadar), Milan Subway (Andheri), and Kings Circle — these waterlog first. Check BMC flood alerts before each shift.
+- **Shaded wait spots:** Covered bays at Infiniti Mall (Andheri), basement lanes at BKC tower blocks, or the covered footbridge near Bandra station delivery zone.
+- **Traffic timing:** The Western Express Highway moves freely only between 10 AM–12 PM and 2–4 PM. Plan your cross-zone moves during these windows.
+        """,
+        "peak": """
+**Demand Forecast — Mumbai**
+
+| Time Window | Demand Level | Best Platform |
+|---|---|---|
+| 8:00 – 9:30 AM | High | Swiggy (office breakfast — Andheri, BKC) |
+| 12:30 – 2:00 PM | Very High | Zomato + Blinkit (Bandra, Powai) |
+| 4:00 – 5:00 PM | High | Zepto (Juhu, Andheri West) |
+| 7:30 – 9:30 PM | Very High | All platforms — Bandra, Dadar dinner surge |
+
+**Strategy:** BKC is your highest per-order payout zone at lunch. The corporate tower clusters dispatch orders above Rs. 600 avg bill — tip culture is stronger here than anywhere else in Mumbai.
+        """,
+        "zones": """
+**Top 3 Hotspots — Mumbai**
+
+**1. BKC (Bandra-Kurla Complex)**
+Highest corporate lunch demand in Mumbai. Drops go to Platina, G-Block towers, and MMRDA grounds offices. Average order value is 30% above city average.
+
+**2. Andheri West — Lokhandwala & Versova**
+Evening dinner surge is consistent. Short drops to Oshiwara apartments. Blinkit & Zepto quick-commerce runs keep trip count high between 4–7 PM.
+
+**3. Bandra Linking Road**
+Saturday-Sunday demand is exceptional — highest brunch and café orders in the city. Drops to Carter Road apartments are short (under 1.5 km) and frequent.
+
+> **Mumbai rewards endurance — plan your flood bypasses, hit BKC at lunch, and own Bandra in the evening!**
+        """,
+    },
+    "Delhi": {
+        "safety": """
+**Heat Risk: EXTREME — Mandatory Protocol in Effect**
+
+Delhi summer streets reach 47–50 C surface temperature between May and July. The capital also has the highest PM2.5 levels of any Indian metro — a double hazard for outdoor riders.
+
+**Your shift safety protocol:**
+- **Hydration target:** 300 ml every 30 minutes. Never skip — at 46 C, dehydration sets in before thirst does.
+- **Air quality:** Wear an N95 half-mask during high-pollution days (AQI > 200). Replace every 8-hour shift.
+- **Shaded wait spots:** Covered bays at Saket Select Citywalk delivery zone, basement lanes at DLF Cyber City Gurugram, or any DMRC station covered area.
+- **Critical blackout window:** 12 PM – 3 PM in May/June. If possible, batch your mandatory break here and do your heaviest riding before 11 AM and after 5 PM.
+        """,
+        "peak": """
+**Demand Forecast — Delhi**
+
+| Time Window | Demand Level | Best Platform |
+|---|---|---|
+| 8:00 – 9:30 AM | High | Swiggy (Connaught Place office zone) |
+| 12:30 – 2:00 PM | Very High | Zomato + Blinkit (Lajpat Nagar, Saket) |
+| 5:00 – 6:00 PM | Medium | Zepto (Rohini, Dwarka residential) |
+| 7:30 – 9:30 PM | Very High | All platforms — Hauz Khas Village peak |
+
+**Strategy:** Cyber City Gurugram (DLF phases 1-3) is the single highest-value lunch zone in the NCR — corporate orders, high bill sizes, and minimal traffic on internal campus roads.
+        """,
+        "zones": """
+**Top 3 Hotspots — Delhi NCR**
+
+**1. Cyber City, Gurugram (DLF Phase 2-3)**
+Highest corporate lunch density in NCR. Average order above Rs. 700. Internal campus roads are smooth and well-marked — fastest drop turnaround in the region.
+
+**2. Connaught Place (CP) Inner Circle**
+All-day demand from offices, retail staff, and tourists. Drops radiate within 2 km. Master the one-way street grid early — wrong-way entry costs 10+ minutes.
+
+**3. Hauz Khas Village**
+Evening dinner surge from 7:30 PM is exceptional — premium restaurants, high tip potential, and short drops to South Delhi apartments.
+
+> **Delhi pays top rupees for top riders — beat the heat, own Cyber City at lunch, and finish strong in Hauz Khas!**
+        """,
+    },
+    "Chennai": {
+        "safety": """
+**Heat & Humidity Risk: HIGH — Stay Hydrated**
+
+Chennai's coastal humidity makes 38 C feel like 44 C. The combination of radiant asphalt heat and sea humidity is uniquely draining — fatigue sets in faster than in drier cities.
+
+**Your shift safety protocol:**
+- **Hydration target:** 250 ml every 40 minutes. Coconut water at any Amma Unavagam or roadside stall is the most effective electrolyte source in Chennai.
+- **Shaded wait spots:** Covered parking at Express Avenue Mall delivery bay, under the MRTS rail bridges on Rajiv Gandhi Salai (OMR), or the covered walkway at Phoenix MarketCity Velachery.
+- **Clothing:** Light cotton kurta or full-sleeve white shirt under your jacket — the sea wind helps, but direct sun exposure on OMR and ECR is intense 10 AM–3 PM.
+- **Monsoon note:** Northeast monsoon (Oct–Dec) floods Velachery and Saidapet quickly — keep BMC flood channel maps bookmarked.
+        """,
+        "peak": """
+**Demand Forecast — Chennai**
+
+| Time Window | Demand Level | Best Platform |
+|---|---|---|
+| 8:00 – 9:30 AM | High | Swiggy (T. Nagar, Anna Nagar offices) |
+| 12:30 – 2:00 PM | Very High | Zomato + Swiggy (OMR IT corridor) |
+| 4:00 – 5:00 PM | Medium | Zepto & Blinkit (Adyar, Velachery) |
+| 7:30 – 9:30 PM | Very High | All platforms — Adyar, T. Nagar dinner surge |
+
+**Strategy:** OMR (Old Mahabalipuram Road) IT corridor is your highest volume lunch zone — Sholinganallur to Perungudi stretch has the densest office cluster. Position there by 12:15 PM to capture the first dispatch wave.
+        """,
+        "zones": """
+**Top 3 Hotspots — Chennai**
+
+**1. OMR Sholinganallur-Perungudi IT Cluster**
+Highest lunch order density in Chennai. Average drop radius: 1.8 km inside campus zones. Short trips, high frequency, smooth roads.
+
+**2. T. Nagar (Pondy Bazaar area)**
+All-day demand from retail workers, shoppers, and apartments. Evening drops go to adjacent residential streets — easy navigation, consistent volume.
+
+**3. Adyar (Kasturibai Nagar & LB Road)**
+Evening dinner surge from 7:30 PM. Drops to beachside apartments are short and frequent. Blinkit & Zepto grocery runs keep trip count high throughout the day.
+
+> **Chennai rewards consistency — own OMR at lunch, rest through the 2 PM heat, and finish strong in Adyar!**
+        """,
+    },
+}
+
+
+def get_demo(city: str, zone: str, section: str) -> str:
+    if city in CITY_DEMO:
+        return CITY_DEMO[city].get(section, "")
     data = DEMO_RESPONSES.get(zone, DEMO_RESPONSES["default"])
     return data.get(section, "")
 
@@ -485,14 +663,18 @@ if generate:
                 API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
                 HEADERS = {"Authorization": f"Bearer {hf_token}"}
 
+                city_landmarks = CITY_CONTEXT.get(city, "")
+                city_traffic = CITY_TRAFFIC_NOTES.get(city, "")
                 prompt = (
                     f"Act as an expert logistics coordinator and safety assistant for a gig worker "
-                    f"riding a {vehicle} in the {zone} area of Hyderabad, India. "
-                    f"Current live weather condition: {weather_context} "
+                    f"riding a {vehicle} in the {zone} area of {city}, India. "
+                    f"Current live weather condition: {weather_context}. "
+                    f"Key local landmarks in {city}: {city_landmarks}. "
+                    f"Local traffic intelligence: {city_traffic} "
                     f"Provide a highly practical, realistic shift strategy structured into three distinct sections:\n"
                     f"1. {weather_context.split(':')[0]} (Prioritise the current weather condition above all else in this section).\n"
-                    f"2. Peak Slot Optimization (Predict where the highest quick-commerce/ride-share order volume will pool).\n"
-                    f"3. Hyper-Local Zone Focus (Suggest specific local landmarks, tech parks, or hubs to wait near for maximum orders).\n"
+                    f"2. Peak Slot Optimization (Predict where the highest quick-commerce/ride-share order volume will pool in {city}).\n"
+                    f"3. Hyper-Local Zone Focus (Suggest specific local landmarks, tech parks, or hubs in {zone}, {city} to wait near for maximum orders).\n"
                     f"Keep the tone encouraging and write the actionable layout advice clearly. Use simple terminology."
                 )
 
@@ -519,9 +701,9 @@ if generate:
 
     if used_demo or not sections:
         sections = {
-            "safety": get_demo(zone, "safety"),
-            "peak": get_demo(zone, "peak"),
-            "zones": get_demo(zone, "zones"),
+            "safety": get_demo(city, zone, "safety"),
+            "peak": get_demo(city, zone, "peak"),
+            "zones": get_demo(city, zone, "zones"),
         }
 
     st.success(":white_check_mark: Strategy compiled — tailored for **{}** riding a **{}**".format(zone, vehicle))
