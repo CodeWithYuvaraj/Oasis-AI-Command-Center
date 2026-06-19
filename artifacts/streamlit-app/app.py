@@ -3,14 +3,33 @@ import requests
 import os
 
 
+CITY_COORDS = {
+    "Hyderabad": {"lat": 17.3850, "lon": 78.4867},
+    "Bengaluru":  {"lat": 12.9716, "lon": 77.5946},
+    "Mumbai":     {"lat": 19.0760, "lon": 72.8777},
+    "Delhi":      {"lat": 28.6139, "lon": 77.2090},
+    "Chennai":    {"lat": 13.0827, "lon": 80.2707},
+}
+
+CITY_ZONES = {
+    "Hyderabad": ["Ameerpet", "Madhapur", "Gachibowli", "Kukatpally", "Banjara Hills"],
+    "Bengaluru":  ["Koramangala", "Indiranagar", "Whitefield", "HSR Layout", "Electronic City"],
+    "Mumbai":     ["Andheri", "Bandra", "Powai", "Kurla", "Dadar"],
+    "Delhi":      ["Connaught Place", "Lajpat Nagar", "Dwarka", "Rohini", "Saket"],
+    "Chennai":    ["T. Nagar", "Anna Nagar", "Velachery", "Adyar", "Tambaram"],
+}
+
+CITY_HYDERABAD_ZONES = ["Madhapur", "Ameerpet", "Kukatpally", "Secunderabad", "Gachibowli"]
+
+
 @st.cache_data(ttl=300)
-def fetch_live_weather() -> dict:
+def fetch_live_weather(lat: float, lon: float) -> dict:
     try:
         resp = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
-                "latitude": 17.3850,
-                "longitude": 78.4867,
+                "latitude": lat,
+                "longitude": lon,
                 "current_weather": "true",
                 "hourly": "temperature_2m,precipitation",
                 "forecast_days": 1,
@@ -224,20 +243,32 @@ def split_strategy(text: str):
 
 
 # ── TOP STATUS BAR ──────────────────────────────────────────────────────────
-st.success(":satellite: SYSTEM STATUS: LIVE FEED DEPLOYED  •  Oasis AI v2.1  •  Hyderabad Grid Active")
-
 st.title(":motor_scooter: Oasis AI: Gig-Worker Co-Pilot")
 st.markdown("Real-time safety intelligence and peak demand routing for two-wheeler delivery partners.")
 st.divider()
 
 # ── CONTROLS ────────────────────────────────────────────────────────────────
 st.subheader(":round_pushpin: Shift Configuration")
+
+region_col, _, _ = st.columns([2, 2, 1])
+with region_col:
+    city = st.selectbox(
+        ":map: Select Operational Region",
+        list(CITY_COORDS.keys()),
+        index=0,
+    )
+
+city_zones = CITY_HYDERABAD_ZONES if city == "Hyderabad" else CITY_ZONES[city]
+
+st.success(f":satellite: SYSTEM STATUS: LIVE FEED DEPLOYED  •  Oasis AI v2.1  •  {city} Grid Active")
+st.divider()
+
 col1, col2, col3 = st.columns([2, 2, 1])
 
 with col1:
     zone = st.selectbox(
-        "Current Zone (Hyderabad)",
-        ["Madhapur", "Ameerpet", "Kukatpally", "Secunderabad", "Gachibowli"]
+        f"Current Zone ({city})",
+        city_zones,
     )
 
 with col2:
@@ -256,7 +287,8 @@ st.divider()
 metrics = ZONE_METRICS.get(zone, ZONE_METRICS["Madhapur"])
 
 st.subheader(":bar_chart: Live Zone Intelligence")
-weather = fetch_live_weather()
+coords = CITY_COORDS[city]
+weather = fetch_live_weather(coords["lat"], coords["lon"])
 live_temp_val = weather["temp"]
 live_precip = weather["precip"]
 temp_label = f"{live_temp_val} C" + (" (Offline)" if weather["offline"] else "")
@@ -293,7 +325,7 @@ with st.sidebar:
     )
     st.divider()
     st.subheader(":partly_sunny: 12-Hour Shift Forecast")
-    st.caption("Hyderabad — live data updated every 5 min")
+    st.caption(f"{city} — live data updated every 5 min")
     st.divider()
 
     if weather["offline"]:
@@ -397,12 +429,13 @@ st.divider()
 import random
 
 st.subheader(":world_map: Live Demand Radar — Zone Switch Advisor")
-st.caption("Compare surge multipliers across Hyderabad zones to decide if moving pays off.")
+st.caption(f"Compare surge multipliers across {city} zones to decide if moving pays off.")
 
 random.seed(42)
-RADAR_ZONES = ["Ameerpet", "Madhapur", "Gachibowli", "Kukatpally", "Banjara Hills"]
+RADAR_ZONES = CITY_ZONES[city]
 radar_surges = {z: round(random.uniform(1.1, 2.9), 1) for z in RADAR_ZONES}
-radar_surges[zone] = surge_num   # pin current zone to its real value
+if zone in radar_surges:
+    radar_surges[zone] = surge_num   # pin current zone to its real value
 
 best_zone = max(radar_surges, key=radar_surges.get)
 
