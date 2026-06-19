@@ -12,7 +12,7 @@ def fetch_live_weather() -> dict:
                 "latitude": 17.3850,
                 "longitude": 78.4867,
                 "current_weather": "true",
-                "hourly": "precipitation",
+                "hourly": "temperature_2m,precipitation",
                 "forecast_days": 1,
                 "timezone": "Asia/Kolkata",
             },
@@ -21,11 +21,44 @@ def fetch_live_weather() -> dict:
         resp.raise_for_status()
         data = resp.json()
         temp = data["current_weather"]["temperature"]
-        precip_list = data.get("hourly", {}).get("precipitation", [0])
-        precip = precip_list[0] if precip_list else 0.0
-        return {"temp": temp, "precip": precip, "offline": False}
+        hourly = data.get("hourly", {})
+        all_times = hourly.get("time", [])
+        all_temps = hourly.get("temperature_2m", [])
+        all_precips = hourly.get("precipitation", [])
+
+        # Find the current hour index using the reported weather time
+        current_time_str = data["current_weather"].get("time", "")
+        try:
+            start_idx = next(
+                (i for i, t in enumerate(all_times) if t >= current_time_str), 0
+            )
+        except Exception:
+            start_idx = 0
+
+        end_idx = start_idx + 12
+        hours = [t[11:16] for t in all_times[start_idx:end_idx]]   # "HH:MM"
+        temps = all_temps[start_idx:end_idx]
+        precips = all_precips[start_idx:end_idx]
+
+        precip = precips[0] if precips else 0.0
+        return {
+            "temp": temp,
+            "precip": precip,
+            "offline": False,
+            "hours": hours,
+            "temps": temps,
+            "precips": precips,
+        }
     except Exception:
-        return {"temp": 38.0, "precip": 0.0, "offline": True}
+        hours = [f"{h:02d}:00" for h in range(12)]
+        return {
+            "temp": 38.0,
+            "precip": 0.0,
+            "offline": True,
+            "hours": hours,
+            "temps": [38, 39, 40, 41, 41, 40, 39, 38, 37, 36, 35, 34],
+            "precips": [0.0] * 12,
+        }
 
 
 st.set_page_config(
@@ -247,6 +280,42 @@ else:
         "Conditions & Comfort: Weather conditions are mild. "
         "Focus on general road safety, efficient route planning, and maintaining energy levels."
     )
+
+# ── SIDEBAR: 12-HOUR FORECAST ────────────────────────────────────────────────
+with st.sidebar:
+    st.subheader(":partly_sunny: 12-Hour Shift Forecast")
+    st.caption("Hyderabad — live data updated every 5 min")
+    st.divider()
+
+    if weather["offline"]:
+        st.warning(":warning: Offline — showing estimated values")
+
+    hours = weather["hours"]
+    temps = weather["temps"]
+    precips = weather["precips"]
+
+    if hours and temps:
+        st.markdown("**:thermometer: Temperature (°C)**")
+        temp_data = {h: t for h, t in zip(hours, temps)}
+        st.line_chart(temp_data, height=160, use_container_width=True)
+
+        st.markdown("**:umbrella: Rainfall (mm)**")
+        precip_data = {h: p for h, p in zip(hours, precips)}
+        st.bar_chart(precip_data, height=160, use_container_width=True)
+
+        max_temp = max(temps)
+        max_temp_hour = hours[temps.index(max_temp)]
+        rain_hours = [hours[i] for i, p in enumerate(precips) if p > 0]
+
+        st.divider()
+        st.markdown("**:clipboard: Shift Planner**")
+        st.info(f":fire: Peak heat at **{max_temp_hour}** — {max_temp}°C. Avoid riding mid-shift if possible.")
+        if rain_hours:
+            st.warning(f":cloud_with_rain: Rain expected at: **{', '.join(rain_hours)}**. Use covered wait spots.")
+        else:
+            st.success(":white_check_mark: No rain forecast for next 12 hours. Ideal riding conditions.")
+    else:
+        st.info("Weather data unavailable.")
 
 m1, m2, m3, m4, m5, m6 = st.columns(6)
 
