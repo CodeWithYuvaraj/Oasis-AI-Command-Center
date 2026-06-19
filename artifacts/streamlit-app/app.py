@@ -243,7 +243,7 @@ with col1:
 with col2:
     vehicle = st.selectbox(
         "Vehicle Type",
-        ["TVS Activa (Scooter)", "Motorcycle", "EV"]
+        ["Scooty", "Motorcycle", "EV"]
     )
 
 with col3:
