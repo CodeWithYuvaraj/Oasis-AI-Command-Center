@@ -2,6 +2,21 @@ import streamlit as st
 import requests
 import os
 
+
+@st.cache_data(ttl=300)
+def fetch_live_temp() -> str:
+    try:
+        resp = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={"latitude": 17.3850, "longitude": 78.4867, "current_weather": "true"},
+            timeout=5
+        )
+        resp.raise_for_status()
+        temp = resp.json()["current_weather"]["temperature"]
+        return f"{temp}°C"
+    except Exception:
+        return "38°C (Offline)"
+
 st.set_page_config(
     page_title="Oasis AI",
     page_icon="🛵",
@@ -176,7 +191,8 @@ st.divider()
 metrics = ZONE_METRICS.get(zone, ZONE_METRICS["Madhapur"])
 
 st.subheader("📊 Live Zone Intelligence")
-m1, m2, m3, m4 = st.columns(4)
+live_temp = fetch_live_temp()
+m1, m2, m3, m4, m5 = st.columns(5)
 
 m1.metric(
     label="⚡ Surge Multiplier",
@@ -198,6 +214,11 @@ m4.metric(
     label="📦 Current Demand",
     value=metrics["demand"][0],
     delta=metrics["demand"][1],
+)
+m5.metric(
+    label="🌤️ Live Surface Temp",
+    value=live_temp,
+    delta="Hyderabad",
 )
 
 st.divider()
