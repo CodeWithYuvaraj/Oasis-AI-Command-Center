@@ -283,6 +283,15 @@ else:
 
 # ── SIDEBAR: 12-HOUR FORECAST ────────────────────────────────────────────────
 with st.sidebar:
+    st.subheader(":alarm_clock: Shift Planner")
+    shift_hours = st.slider(
+        ":stopwatch: Planned Shift Duration (Hours)",
+        min_value=1,
+        max_value=12,
+        value=6,
+        step=1,
+    )
+    st.divider()
     st.subheader(":partly_sunny: 12-Hour Shift Forecast")
     st.caption("Hyderabad — live data updated every 5 min")
     st.divider()
@@ -359,10 +368,11 @@ m6.metric(
 BASE_RATE = 120
 surge_num = float(metrics["surge"][0].replace("x", ""))
 estimated_payout = round(BASE_RATE * surge_num)
+total_shift_earnings = estimated_payout * shift_hours
 
 st.divider()
 st.subheader(":moneybag: Live Earnings Estimator")
-earn_col1, earn_col2, earn_col3 = st.columns([1, 1, 2])
+earn_col1, earn_col2, earn_col3, earn_col4 = st.columns([1, 1, 1, 2])
 earn_col1.metric(
     label=":chart_with_upwards_trend: Base Rate",
     value=f"Rs. {BASE_RATE} / hr",
@@ -372,9 +382,13 @@ earn_col2.metric(
     value=metrics["surge"][0],
     delta=metrics["surge"][1],
 )
-earn_col3.success(
-    f":moneybag: **Estimated Payout: Rs. {estimated_payout} / hour** "
-    f"— {zone} zone at {metrics['surge'][0]} surge"
+earn_col3.metric(
+    label=":alarm_clock: Shift Duration",
+    value=f"{shift_hours} hr{'s' if shift_hours > 1 else ''}",
+)
+earn_col4.success(
+    f":moneybag: **Total Projected Shift Earnings: Rs. {total_shift_earnings}**  \n"
+    f"Rs. {estimated_payout}/hr × {shift_hours} hrs — {zone} at {metrics['surge'][0]} surge"
 )
 
 st.divider()
