@@ -4,18 +4,28 @@ import os
 
 
 @st.cache_data(ttl=300)
-def fetch_live_temp() -> str:
+def fetch_live_weather() -> dict:
     try:
         resp = requests.get(
             "https://api.open-meteo.com/v1/forecast",
-            params={"latitude": 17.3850, "longitude": 78.4867, "current_weather": "true"},
-            timeout=5
+            params={
+                "latitude": 17.3850,
+                "longitude": 78.4867,
+                "current_weather": "true",
+                "hourly": "precipitation",
+                "forecast_days": 1,
+                "timezone": "Asia/Kolkata",
+            },
+            timeout=5,
         )
         resp.raise_for_status()
-        temp = resp.json()["current_weather"]["temperature"]
-        return f"{temp}°C"
+        data = resp.json()
+        temp = data["current_weather"]["temperature"]
+        precip_list = data.get("hourly", {}).get("precipitation", [0])
+        precip = precip_list[0] if precip_list else 0.0
+        return {"temp": temp, "precip": precip, "offline": False}
     except Exception:
-        return "38°C (Offline)"
+        return {"temp": 38.0, "precip": 0.0, "offline": True}
 
 st.set_page_config(
     page_title="Oasis AI",
@@ -191,8 +201,32 @@ st.divider()
 metrics = ZONE_METRICS.get(zone, ZONE_METRICS["Madhapur"])
 
 st.subheader("📊 Live Zone Intelligence")
-live_temp = fetch_live_temp()
-m1, m2, m3, m4, m5 = st.columns(5)
+weather = fetch_live_weather()
+live_temp_val = weather["temp"]
+live_precip = weather["precip"]
+temp_label = f"{live_temp_val}°C" + (" (Offline)" if weather["offline"] else "")
+precip_label = f"{live_precip} mm" + (" (Offline)" if weather["offline"] else "")
+
+if live_precip > 0:
+    weather_context = (
+        "Monsoon & Wet-Road Safety: The roads are currently wet. "
+        "Focus on braking distance on slippery surfaces, reducing speed at turns, "
+        "using the scooter's under-seat storage to keep orders dry, "
+        "and avoiding waterlogged lanes near low-lying areas."
+    )
+elif live_temp_val > 35:
+    weather_context = (
+        "Environment & Thermal Safety: It is currently very hot. "
+        "Focus on hydration schedules (250 ml every 45 min), shaded wait zones, "
+        "avoiding peak midday sun exposure, and wearing light-coloured clothing to reflect heat."
+    )
+else:
+    weather_context = (
+        "Conditions & Comfort: Weather conditions are mild. "
+        "Focus on general road safety, efficient route planning, and maintaining energy levels."
+    )
+
+m1, m2, m3, m4, m5, m6 = st.columns(6)
 
 m1.metric(
     label="⚡ Surge Multiplier",
@@ -217,8 +251,13 @@ m4.metric(
 )
 m5.metric(
     label="🌤️ Live Surface Temp",
-    value=live_temp,
+    value=temp_label,
     delta="Hyderabad",
+)
+m6.metric(
+    label="🌧️ Live Rainfall",
+    value=precip_label,
+    delta="Monsoon Active" if live_precip > 0 else "Dry Conditions",
 )
 
 st.divider()
@@ -238,8 +277,9 @@ if generate:
                 prompt = (
                     f"Act as an expert logistics coordinator and safety assistant for a gig worker "
                     f"riding a {vehicle} in the {zone} area of Hyderabad, India. "
+                    f"Current live weather condition: {weather_context} "
                     f"Provide a highly practical, realistic shift strategy structured into three distinct sections:\n"
-                    f"1. 🌡️ Environment & Thermal Safety (Address heat risks, shaded routing options, hydration targets).\n"
+                    f"1. 🌡️ {weather_context.split(':')[0]} (Prioritise the current weather condition above all else in this section).\n"
                     f"2. 💰 Peak Slot Optimization (Predict where the highest quick-commerce/ride-share order volume will pool).\n"
                     f"3. 📍 Hyper-Local Zone Focus (Suggest specific local landmarks, tech parks, or hubs to wait near for maximum orders).\n"
                     f"Keep the tone encouraging and write the actionable layout advice clearly. Use simple terminology."
