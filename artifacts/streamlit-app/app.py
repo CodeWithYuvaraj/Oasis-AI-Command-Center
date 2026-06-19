@@ -229,33 +229,33 @@ else:
 m1, m2, m3, m4, m5, m6 = st.columns(6)
 
 m1.metric(
-    label="⚡ Surge Multiplier",
+    label=">> Surge Multiplier",
     value=metrics["surge"][0],
     delta=metrics["surge"][1],
 )
 m2.metric(
-    label="🧑‍🤝‍🧑 Active Riders Near Hub",
+    label="| Active Riders Near Hub",
     value=metrics["riders"][0],
     delta=metrics["riders"][1],
     delta_color="inverse",
 )
 m3.metric(
-    label="🌡️ Thermal Risk Level",
+    label="| Thermal Risk Level",
     value=metrics["thermal"][0],
     delta=metrics["thermal"][1],
 )
 m4.metric(
-    label="📦 Current Demand",
+    label=">> Current Demand",
     value=metrics["demand"][0],
     delta=metrics["demand"][1],
 )
 m5.metric(
-    label="🌤️ Live Surface Temp",
+    label="| Live Surface Temp",
     value=temp_label,
     delta="Hyderabad",
 )
 m6.metric(
-    label="🌧️ Live Rainfall",
+    label="| Live Rainfall (mm)",
     value=precip_label,
     delta="Monsoon Active" if live_precip > 0 else "Dry Conditions",
 )
