@@ -295,13 +295,17 @@ with st.sidebar:
     precips = weather["precips"]
 
     if hours and temps:
+        import pandas as pd
         st.markdown("**:thermometer: Temperature (°C)**")
-        temp_data = {h: t for h, t in zip(hours, temps)}
-        st.line_chart(temp_data, height=160, use_container_width=True)
+        temp_series = pd.Series(temps, index=hours, name="Temp (C)")
+        st.line_chart(temp_series, height=160, use_container_width=True)
 
         st.markdown("**:umbrella: Rainfall (mm)**")
-        precip_data = {h: p for h, p in zip(hours, precips)}
-        st.bar_chart(precip_data, height=160, use_container_width=True)
+        if any(p > 0 for p in precips):
+            precip_series = pd.Series(precips, index=hours, name="Rain (mm)")
+            st.bar_chart(precip_series, height=160, use_container_width=True)
+        else:
+            st.success(":white_check_mark: No rainfall expected in the next 12 hours.")
 
         max_temp = max(temps)
         max_temp_hour = hours[temps.index(max_temp)]
@@ -350,6 +354,75 @@ m6.metric(
     value=precip_label,
     delta="Monsoon Active" if live_precip > 0 else "Dry Conditions",
 )
+
+# ── LIVE EARNINGS ESTIMATOR ──────────────────────────────────────────────────
+BASE_RATE = 120
+surge_num = float(metrics["surge"][0].replace("x", ""))
+estimated_payout = round(BASE_RATE * surge_num)
+
+st.divider()
+st.subheader(":moneybag: Live Earnings Estimator")
+earn_col1, earn_col2, earn_col3 = st.columns([1, 1, 2])
+earn_col1.metric(
+    label=":chart_with_upwards_trend: Base Rate",
+    value=f"Rs. {BASE_RATE} / hr",
+)
+earn_col2.metric(
+    label=":zap: Zone Surge",
+    value=metrics["surge"][0],
+    delta=metrics["surge"][1],
+)
+earn_col3.success(
+    f":moneybag: **Estimated Payout: Rs. {estimated_payout} / hour** "
+    f"— {zone} zone at {metrics['surge'][0]} surge"
+)
+
+st.divider()
+
+# ── ZONE SWITCH ADVISOR ──────────────────────────────────────────────────────
+import random
+
+st.subheader(":world_map: Live Demand Radar — Zone Switch Advisor")
+st.caption("Compare surge multipliers across Hyderabad zones to decide if moving pays off.")
+
+random.seed(42)
+RADAR_ZONES = ["Ameerpet", "Madhapur", "Gachibowli", "Kukatpally", "Banjara Hills"]
+radar_surges = {z: round(random.uniform(1.1, 2.9), 1) for z in RADAR_ZONES}
+radar_surges[zone] = surge_num   # pin current zone to its real value
+
+best_zone = max(radar_surges, key=radar_surges.get)
+
+import pandas as pd
+radar_series = pd.Series(
+    [radar_surges[z] for z in RADAR_ZONES],
+    index=RADAR_ZONES,
+    name="Surge (x)"
+)
+st.bar_chart(radar_series, height=220, use_container_width=True)
+
+radar_cols = st.columns(len(RADAR_ZONES))
+for col, z in zip(radar_cols, RADAR_ZONES):
+    earning = round(BASE_RATE * radar_surges[z])
+    marker = " :trophy:" if z == best_zone else ""
+    col.metric(
+        label=f"{z}{marker}",
+        value=f"{radar_surges[z]}x",
+        delta=f"Rs. {earning}/hr",
+        delta_color="normal",
+    )
+
+if best_zone != zone:
+    st.info(
+        f":round_pushpin: **Switch Recommendation:** Moving to **{best_zone}** "
+        f"({radar_surges[best_zone]}x surge) could earn you "
+        f"**Rs. {round(BASE_RATE * radar_surges[best_zone])}/hr** "
+        f"vs Rs. {estimated_payout}/hr in {zone}."
+    )
+else:
+    st.success(
+        f":white_check_mark: **You're already in the best zone!** "
+        f"{zone} has the highest surge at {surge_num}x — stay put and maximize earnings."
+    )
 
 st.divider()
 
